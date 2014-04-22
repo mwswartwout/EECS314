@@ -112,10 +112,25 @@ encrChar:
 	j $ra
 
 Decrypt:
-	la $a0, promptDec
+	la $a0, promptDec #Prints prompt to enter public modulus
 	li $v0, 4
 	syscall	
 
+	li $v0, 5
+	syscall	
+	move $s8, $v0 #stores the public modulus in s8
+	
+	li $a0, promtDec2 #Prints prompt to enter the private exponent
+	li $v0, 4
+	syscall
+	
+	li $v0, 5
+	syscall
+	move $s9, $v0 #stores the private exponent is s9
+	
+	
+	
+	
 	j Exit
 
 Exit:	
@@ -134,7 +149,8 @@ Exit:
 prompt: .asciiz "What do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
 promptEncE: .asciiz "Enter the encryption key.\n"
 promptEncN: .asciiz "Enter the product.\n"
-promptDec: .asciiz "Decryption happens here.\n"
+promptDec: .asciiz "Enter the public modulus.\n"
+promptDec2: .asciiz "Enter the public exponent. \n"
 promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
 
 prompt:	.asciiz	"Enter the file name you wish to input: "
