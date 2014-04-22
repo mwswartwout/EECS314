@@ -7,15 +7,14 @@ Start:
 	#jal getFileName	#Not working right now
 	jal getModulus
 	jal getExponent
-	
-
-	jal	Read
-	
-	beq	$s0, $0, Encrypt
-	j Decrypt
+	jal readFile
+	j Test_Change
+		
+	#beq	$s0, $0, Encrypt
+	#j Decrypt
 
 encryptOrDecrypt:
-	la	$a0, prompt	#prompt for encrypt or decrypt
+	la	$a0, promptED	#prompt for encrypt or decrypt
 	li	$v0,4
 	syscall
 	
@@ -23,12 +22,12 @@ encryptOrDecrypt:
 	syscall
 	move $s0, $v0	#save user input to register (0:e, 1:d)
 	
-	j $ra
+	jr $ra
 
 getFileName:
 	# get file name from user
 	li	$v0, 4		# prompt user for file name to read
-	la	$a0, prompt
+	la	$a0, promptFN
 	syscall
 	
 	li	$v0, 8		# retrieve user input
@@ -36,9 +35,10 @@ getFileName:
 	li	$a1, 100	# max number of characters
 	syscall
 
-	jr	$ra		# return to main method	
+	jr	$ra		# return to main method
+		
 getModulus:
-	la $a0, promptN
+	la $a0, promptM
 	li $v0, 4
 	syscall
 
@@ -46,7 +46,7 @@ getModulus:
 	syscall
 	move $s1, $v0	#product key in $s6 ($s6 = n)
 	
-	j $ra
+	jr $ra
 	
 getExponent:
 	la $a0, promptE
@@ -57,9 +57,9 @@ getExponent:
 	syscall
 	move $s2, $v0	#encryption key in $s7 ($s7 = e)
 
-	j $ra	
+	jr $ra	
 
-Read:	
+readFile:	
 	li   	$v0, 13       	# system call for open file
  	la   	$a0, fname   	# output file name
   	li   	$a1, 0       	# Open for reading (flags are 0: read, 1: write)
@@ -83,7 +83,7 @@ Read:
 	#jal	Test_Print	#NEED TO SAVE ADDRESS TO DIFFERENT REGISTER!!!
 	#jal	Test_Change	#Test functions commented out
 
-	j $ra
+	jr $ra
 
 Test_Print:
 	la	$a0, input
@@ -94,18 +94,19 @@ Test_Print:
 Test_Change:
 	li	$v0, 4
 	la	$t0, input
+	
 Print_Loop:
 	lb	$t2, ($t0)
 	beqz	$t2, JReturn
 	jal	encrChar
 	sb	$t2, ($t0)
-	addi	$t0, 1
+	addi	$t0, $t0, 1
 	j	Print_Loop
 
 JReturn:
 	la	$a0, input
 	syscall
-	j	$ra
+	jr	$ra
 	
 encrChar:
 	add $t0, $s7, $0	#number of times to execute mult loop
@@ -120,29 +121,29 @@ encrChar:
 	sub $t1, $t1, $s6	#subtract n from the working value
 	j modN
  exitModN:
-	j $ra
+	jr $ra
 
-Decrypt:
-	la $a0, promptDec #Prints prompt to enter public modulus
-	li $v0, 4
-	syscall	
-
-	li $v0, 5
-	syscall	
-	move $s8, $v0 #stores the public modulus in s8
+#Decrypt:
+#	la $a0, promptDec #Prints prompt to enter public modulus
+#	li $v0, 4
+#	syscall	
+#
+#	li $v0, 5
+#	syscall	
+#	move $s8, $v0 #stores the public modulus in s8
+#	
+#	li $a0, promtDec2 #Prints prompt to enter the private exponent
+#	li $v0, 4
+#	syscall
+#	
+#	li $v0, 5
+#	syscall
+#	move $s9, $v0 #stores the private exponent is s9
+#	
+#	
 	
-	li $a0, promtDec2 #Prints prompt to enter the private exponent
-	li $v0, 4
-	syscall
 	
-	li $v0, 5
-	syscall
-	move $s9, $v0 #stores the private exponent is s9
-	
-	
-	
-	
-	j Exit
+#	j Exit
 
 Exit:	
 	la $a0, promptExit
@@ -157,14 +158,14 @@ Exit:
 	
 .data
 
-prompt: .asciiz "What do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
+promptED: .asciiz "What do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
 promptE: .asciiz "Enter the encryption key.\n"
-promptN: .asciiz "Enter the product.\n"
+promptM: .asciiz "Enter the modulus.\n"
 promptDec: .asciiz "Enter the public modulus.\n"
 promptDec2: .asciiz "Enter the public exponent. \n"
 promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
 
-prompt:	.asciiz	"Enter the file name you wish to input: "
+promptFN:	.asciiz	"Enter the file name you wish to input: "
 fname:	.asciiz	"C:\\Users\\James Zhang\\Desktop\\money.txt"	# file name to read
 input:	.space	100	# location for input from file
 
