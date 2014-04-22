@@ -9,6 +9,7 @@ Start:
 	jal getExponent
 	jal readFile
 	jal rsaMath	
+	jal testPrint
 			
 	#beq	$s0, $0, Encrypt
 	#j Decrypt
@@ -86,7 +87,7 @@ readFile:
 	jr $ra
 
 testPrint:
-	la	$a0, input
+	la	$a0, output
 	li	$v0, 4
 	syscall
 	jr	$ra
@@ -110,15 +111,14 @@ JReturn:
 	jr	$ra
 	
 rsaMath:
-	move $s7, $ra
 	la $t0, input	#puts address of input into $t0
 	la $t4, output #puts address of output into $t4
-	move $t1, $s2	#copies exponent into $t1
 	addi $t0, $t0, -1 #decrements t0 so that the first loop of iterateCharacters does not skip the first character in the file
 	addi $t4, $t4, -1
 	
 iterateCharacters:
-	sw $t2, ($t4)
+	move $t1, $s2	#copies exponent into $t1
+	sb $t2, ($t4)
 	addi $t4, $t4, 1
 	addi $t0, $t0, 1
 	lb $t2, ($t0)	#loads current character into $t2
@@ -128,7 +128,7 @@ powerE:
 	mult $t2, $t2		#multiply current char by exponent
 	mflo $t2		#move result of multiply to $t2
 	addi $t1, $t1, -1	#decrement $t1
-	bgt $t0, 1, powerE	#branch to top of loop if not fininshed 
+	bgt $t1, 1, powerE	#branch to top of loop if not fininshed 
 
 modN:	
 	slt $t3, $t2, $s1	#if working value < n, t0 = 1
@@ -174,7 +174,7 @@ Exit:
 	
 .data
 
-promptED: .asciiz "What do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
+promptED: .asciiz "\nWhat do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
 promptE: .asciiz "Enter the encryption key.\n"
 promptM: .asciiz "Enter the modulus.\n"
 promptDec: .asciiz "Enter the public modulus.\n"
