@@ -8,8 +8,9 @@ Start:
 	jal getModulus
 	jal getExponent
 	jal readFile
-	j Test_Change
-		
+	#jal testChange
+	jal testPrint
+			
 	#beq	$s0, $0, Encrypt
 	#j Decrypt
 
@@ -85,27 +86,28 @@ readFile:
 
 	jr $ra
 
-Test_Print:
+testPrint:
 	la	$a0, input
 	li	$v0, 4
 	syscall
 	jr	$ra
 
-Test_Change:
+testChange:
 	li	$v0, 4
 	la	$t0, input
 	
-Print_Loop:
+printLoop:
 	lb	$t2, ($t0)
 	beqz	$t2, JReturn
 	jal	encrChar
 	sb	$t2, ($t0)
 	addi	$t0, $t0, 1
-	j	Print_Loop
+	j	printLoop
 
 JReturn:
 	la	$a0, input
 	syscall
+	
 	jr	$ra
 	
 encrChar:
@@ -166,7 +168,7 @@ promptDec2: .asciiz "Enter the public exponent. \n"
 promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
 
 promptFN:	.asciiz	"Enter the file name you wish to input: "
-fname:	.asciiz	"C:\\Users\\James Zhang\\Desktop\\money.txt"	# file name to read
+fname:	.asciiz	"C:\\Users\\Public\\rsa.txt"	# file name to read
 input:	.space	100	# location for input from file
 
         .text
