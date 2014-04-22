@@ -1,0 +1,146 @@
+#actual start of the main program
+	.globl main
+main:				#main has to be a global label
+
+Start:
+	la	$a0, prompt	#prompt for encrypt or decrypt
+	li	$v0,4
+	syscall
+
+	li	$v0, 5
+	syscall
+	add	$s0, $v0, $0	#save user input to register (0:e, 1:d)
+
+	beq	$s0, $0, Encrypt
+	j Decrypt
+
+Encrypt:
+	la $a0, promptEncE
+	li $v0, 4
+	syscall
+
+	li $v0, 5
+	syscall
+	add $s7, $v0, $0	#encryption key in $s7 ($s7 = e)
+
+	la $a0, promptEncN
+	li $v0, 4
+	syscall
+
+	li $v0, 5
+	syscall
+	add $s6, $v0, $0	#product key in $s6 ($s6 = n)	
+	
+Read:	#jal	Get_File_Name	
+	#jal	nameClean
+	#jal	Check_File_Name
+	
+	li   	$v0, 13       	# system call for open file
+ 	la   	$a0, fname   	# output file name
+  	li   	$a1, 0       	# Open for reading (flags are 0: read, 1: write)
+  	li   	$a2, 0       	# mode is ignored
+  	syscall            	# open a file (file descriptor returned in $v0)
+
+  	move 	$s6, $v0     	# save the file descriptor 
+  
+ 	# read from file just opened
+ 	li   	$v0, 14      	# system call for read from file
+  	move 	$a0, $s6     	# file descriptor 
+  	la   	$a1, input  	# address to store text from file
+  	li   	$a2, 10000      # hardcoded buffer length
+  	syscall           	# read file
+  
+ 	# Close the file 
+  	li   	$v0, 16      	# system call for close file
+  	move 	$a0, $s6     	# file descriptor to close
+  	syscall          	# close file
+
+	jal	Test_Print	#NEED TO SAVE ADDRESS TO DIFFERENT REGISTER!!!
+	jal	Test_Change
+
+	li	$v0, 10
+	syscall
+
+Get_File_Name:
+	# get file name from user
+	li	$v0, 4		# prompt user for file name to read
+	la	$a0, prompt
+	syscall
+	
+	li	$v0, 8		# retrieve user input
+	la	$a0, fname	# location to store string
+	li	$a1, 100	# max number of characters
+	syscall
+
+	jr	$ra		# return to main method
+
+Test_Print:
+	la	$a0, input
+	li	$v0, 4
+	syscall
+	jr	$ra
+
+Test_Change:
+	li	$v0, 4
+	la	$t0, input
+Print_Loop:
+	lb	$t2, ($t0)
+	beqz	$t2, JReturn
+	jal	encrChar
+	sb	$t2, ($t0)
+	addi	$t0, 1
+	j	Print_Loop
+
+JReturn:
+	la	$a0, input
+	syscall
+	j	$ra
+	
+encrChar:
+	add $t0, $s7, $0	#number of times to execute mult loop
+	li $t1, 1		#$t0 will contain value^key (m^e)
+ mPowE:	mult $t1, $s1		#multiply by $s1 (char's ascii value)
+	mflo $t1		#move result of multiply to $t1
+	addi $t0, $t0, -1	#decrement $t0
+	bne $t0, $0, mPowE	#branch to top of loop if not fininshed 
+
+ modN:	slt $t0, $t1, $s6	#if working value < n, t0 = 1
+	bne $t0, $0, exitModN		#exit loop (loop performs mod n)
+	sub $t1, $t1, $s6	#subtract n from the working value
+	j modN
+ exitModN:
+	j $ra
+
+Decrypt:
+	la $a0, promptDec
+	li $v0, 4
+	syscall	
+
+	j Exit
+
+Exit:	
+	la $a0, promptExit
+	li $v0, 4
+	syscall
+
+	li $v0, 5
+	syscall
+	add $s0, $v0, $0
+
+	beq $v0, $0, Start
+	
+.data
+
+prompt: .asciiz "What do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
+promptEncE: .asciiz "Enter the encryption key.\n"
+promptEncN: .asciiz "Enter the product.\n"
+promptDec: .asciiz "Decryption happens here.\n"
+promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
+
+prompt:	.asciiz	"Enter the file name you wish to input: "
+fname:	.asciiz	"C:\\Users\\James Zhang\\Desktop\\money.txt"	# file name to read
+input:	.space	100	# location for input from file
+
+        .text
+  
+  	# Prompt for a file name, then read from file and store contents in 'input'
