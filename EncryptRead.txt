@@ -8,8 +8,7 @@ Start:
 	jal getModulus
 	jal getExponent
 	jal readFile
-	#jal testChange
-	jal testPrint
+	jal rsaMath	
 			
 	#beq	$s0, $0, Encrypt
 	#j Decrypt
@@ -99,7 +98,7 @@ testChange:
 printLoop:
 	lb	$t2, ($t0)
 	beqz	$t2, JReturn
-	jal	encrChar
+	#jal	encrChar
 	sb	$t2, ($t0)
 	addi	$t0, $t0, 1
 	j	printLoop
@@ -110,19 +109,34 @@ JReturn:
 	
 	jr	$ra
 	
-encrChar:
-	add $t0, $s7, $0	#number of times to execute mult loop
-	li $t1, 1		#$t0 will contain value^key (m^e)
- mPowE:	mult $t1, $s1		#multiply by $s1 (char's ascii value)
-	mflo $t1		#move result of multiply to $t1
-	addi $t0, $t0, -1	#decrement $t0
-	bne $t0, $0, mPowE	#branch to top of loop if not fininshed 
+rsaMath:
+	move $s7, $ra
+	la $t0, input	#puts address of input into $t0
+	la $t4, output #puts address of output into $t4
+	move $t1, $s2	#copies exponent into $t1
+	addi $t0, $t0, -1 #decrements t0 so that the first loop of iterateCharacters does not skip the first character in the file
+	addi $t4, $t4, -1
+	
+iterateCharacters:
+	sw $t2, ($t4)
+	addi $t4, $t4, 1
+	addi $t0, $t0, 1
+	lb $t2, ($t0)	#loads current character into $t2
+	beqz $t2, exitRsaMath
+	
+powerE:	
+	mult $t2, $t2		#multiply current char by exponent
+	mflo $t2		#move result of multiply to $t2
+	addi $t1, $t1, -1	#decrement $t1
+	bgt $t0, 1, powerE	#branch to top of loop if not fininshed 
 
- modN:	slt $t0, $t1, $s6	#if working value < n, t0 = 1
-	bne $t0, $0, exitModN		#exit loop (loop performs mod n)
-	sub $t1, $t1, $s6	#subtract n from the working value
+modN:	
+	slt $t3, $t2, $s1	#if working value < n, t0 = 1
+	bne $t3, $0, iterateCharacters		#exit loop (loop performs mod n)
+	sub $t2, $t2, $s1	#subtract n from the working value
 	j modN
- exitModN:
+	
+exitRsaMath:
 	jr $ra
 
 #Decrypt:
@@ -170,6 +184,7 @@ promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n
 promptFN:	.asciiz	"Enter the file name you wish to input: "
 fname:	.asciiz	"C:\\Users\\Public\\rsa.txt"	# file name to read
 input:	.space	100	# location for input from file
+output: .space 100
 
         .text
   
