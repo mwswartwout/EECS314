@@ -1,16 +1,29 @@
+.data
+promptED: .asciiz "\nWhat do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
+promptE: .asciiz "Enter the encryption key.\n"
+promptM: .asciiz "Enter the modulus.\n"
+promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
+promptFN:	.asciiz	"Enter the file name you wish to input: "
+fname:	.asciiz	"C:\\Users\\Public\\rsa.txt"	# file name to read
+input:	.space	100	# location for input from file
+output: .space 100
+fout:   .asciiz "C:\\Users\\Public\\rsa.txt"      # filename for output
+
 #actual start of the main program
-	.globl main
+.text
+.globl main
 main:				#main has to be a global label
 
-Start:
 	jal encryptOrDecrypt
 	#jal getFileName	#Not working right now
 	jal getModulus
 	jal getExponent
 	jal readFile
-	jal rsaMath	
 	jal testPrint
-			
+	jal rsaMath
+	jal testPrint	
+	jal writeFile
+	jal exit		
 	#beq	$s0, $0, Encrypt
 	#j Decrypt
 
@@ -25,18 +38,18 @@ encryptOrDecrypt:
 	
 	jr $ra
 
-getFileName:
-	# get file name from user
-	li	$v0, 4		# prompt user for file name to read
-	la	$a0, promptFN
-	syscall
-	
-	li	$v0, 8		# retrieve user input
-	la	$a0, fname	# location to store string
-	li	$a1, 100	# max number of characters
-	syscall
-
-	jr	$ra		# return to main method
+#getFileName:
+#	# get file name from user
+#	li	$v0, 4		# prompt user for file name to read
+#	la	$a0, promptFN
+#	syscall
+#	
+#	li	$v0, 8		# retrieve user input
+#	la	$a0, fname	# location to store string
+#	li	$a1, 100	# max number of characters
+#	syscall
+#
+#	jr	$ra		# return to main method
 		
 getModulus:
 	la $a0, promptM
@@ -90,25 +103,25 @@ testPrint:
 	la	$a0, output
 	li	$v0, 4
 	syscall
-	jr	$ra
 
-testChange:
-	li	$v0, 4
-	la	$t0, input
-	
-printLoop:
-	lb	$t2, ($t0)
-	beqz	$t2, JReturn
-	#jal	encrChar
-	sb	$t2, ($t0)
-	addi	$t0, $t0, 1
-	j	printLoop
+	jr $ra
+#testChange:
+#	li	$v0, 4
+#	la	$t0, input
+#	
+#printLoop:
+#	lb	$t2, ($t0)
+#	beqz	$t2, JReturn
+#	#jal	encrChar
+#	sb	$t2, ($t0)
+#	addi	$t0, $t0, 1
+#	j	printLoop
 
-JReturn:
-	la	$a0, input
-	syscall
+#JReturn:
+#	la	$a0, input
+#	syscall
 	
-	jr	$ra
+#	jr	$ra
 	
 rsaMath:
 	la $t0, input	#puts address of input into $t0
@@ -138,30 +151,29 @@ modN:
 	
 exitRsaMath:
 	jr $ra
-
-#Decrypt:
-#	la $a0, promptDec #Prints prompt to enter public modulus
-#	li $v0, 4
-#	syscall	
-#
-#	li $v0, 5
-#	syscall	
-#	move $s8, $v0 #stores the public modulus in s8
-#	
-#	li $a0, promtDec2 #Prints prompt to enter the private exponent
-#	li $v0, 4
-#	syscall
-#	
-#	li $v0, 5
-#	syscall
-#	move $s9, $v0 #stores the private exponent is s9
-#	
-#	
 	
-	
-#	j Exit
+writeFile: # Create and open a new .txt file
+	li   $v0, 13       # system call for open file
+	la   $a0, fout     # address of output file name
+	li   $a1, 1        # Open for writing flags 1 for write
+	li   $a2, 0        # mode is ignored
+	syscall            # open a file (file descriptor returned in $v0)
+	move $s6, $v0      # save the file descriptor 
 
-Exit:	
+	# Write to file just opened
+	li   $v0, 15       # system call for write to file
+	move $a0, $s6      # file descriptor 
+	la   $a1, output   # address of buffer from which to write
+	li   $a2, 1000     # hardcoded buffer length=1000
+	syscall            # write to file
+
+	# Close the file 
+	li   $v0, 16       # system call for close file
+	move $a0, $s6      # file descriptor to close
+	syscall            # close file
+
+	jr $ra
+exit:	
 	la $a0, promptExit
 	li $v0, 4
 	syscall
@@ -170,22 +182,4 @@ Exit:
 	syscall
 	add $s0, $v0, $0
 
-	beq $v0, $0, Start
-	
-.data
-
-promptED: .asciiz "\nWhat do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
-promptE: .asciiz "Enter the encryption key.\n"
-promptM: .asciiz "Enter the modulus.\n"
-promptDec: .asciiz "Enter the public modulus.\n"
-promptDec2: .asciiz "Enter the public exponent. \n"
-promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
-
-promptFN:	.asciiz	"Enter the file name you wish to input: "
-fname:	.asciiz	"C:\\Users\\Public\\rsa.txt"	# file name to read
-input:	.space	100	# location for input from file
-output: .space 100
-
-        .text
-  
-  	# Prompt for a file name, then read from file and store contents in 'input'
+	beq $v0, $0, main
