@@ -160,19 +160,22 @@ iterateCharacters:
 	addi $t4, $t4, 1
 	addi $t0, $t0, 1
 	lb $t2, ($t0)	#loads current character into $t2
+	move $t3, $t2
 	beqz $t2, exitRsaMath
 	
 powerE:	
-	mult $t2, $t2		#multiply current char by exponent
+	mult $t2, $t3		#multiply current char by original char
 	mflo $t2		#move result of multiply to $t2
 	addi $t1, $t1, -1	#decrement $t1
 	bgt $t1, 1, powerE	#branch to top of loop if not fininshed 
 
 modN:	
-	slt $t3, $t2, $s1	#if working value < n, t3 = 1
-	bne $t3, $0, iterateCharacters		#exit loop (loop performs mod n)
-	sub $t2, $t2, $s1	#subtract n from the working value
-	j modN
+	#slt $t3, $t2, $s1	#if working value < n, t3 = 1
+	#bne $t3, $0, iterateCharacters		#exit loop (loop performs mod n)
+	#sub $t2, $t2, $s1	#subtract n from the working value
+	div $t2, $s1
+	mfhi $t2
+	j iterateCharacters
 	
 exitRsaMath:
 	jr $ra
