@@ -2,10 +2,10 @@
 promptED: .asciiz "\nWhat do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
 promptE: .asciiz "Enter the encryption key.\n"
 promptM: .asciiz "Enter the modulus.\n"
-promptExit: .asciiz "Would you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
+promptExit: .asciiz "\nWould you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
 promptFN:	.asciiz	"Enter the file name you wish to input: "
 fname:	.asciiz	"C:\\Users\\Public\\rsa.txt"	# file name to read
-input:	.space	100	# location for input from file
+input:	.space 100	# location for input from file
 output: .space 100
 fout:   .asciiz "C:\\Users\\Public\\rsa.txt"      # filename for output
 
@@ -14,14 +14,15 @@ fout:   .asciiz "C:\\Users\\Public\\rsa.txt"      # filename for output
 .globl main
 main:				#main has to be a global label
 
+	#RSA numbers: Modulus = 143, encryption key = 7, decryption key = 103
 	jal encryptOrDecrypt
 	#jal getFileName	#Not working right now
 	jal getModulus
 	jal getExponent
 	jal readFile
-	jal testPrint
+	jal testPrintInput
 	jal rsaMath
-	jal testPrint	
+	jal testPrintOutput	
 	jal writeFile
 	jal exit		
 	#beq	$s0, $0, Encrypt
@@ -88,7 +89,7 @@ readFile:
   	la   	$a1, input  	# address to store text from file
   	li   	$a2, 10000      # hardcoded buffer length
   	syscall           	# read file
-  
+  	
  	# Close the file 
   	li   	$v0, 16      	# system call for close file
   	move 	$a0, $s6     	# file descriptor to close
@@ -99,11 +100,25 @@ readFile:
 
 	jr $ra
 
-testPrint:
-	la	$a0, output
+testPrintInput:
+	la	$a0, input
 	li	$v0, 4
 	syscall
 
+	jr $ra
+	
+testPrintOutput:
+	la	$a0, output
+	li	$v0, 4
+	syscall
+	
+	jr $ra
+
+testPrintChar:
+	la	$a0, ($t4)
+	li	$v0, 4
+	syscall
+	
 	jr $ra
 #testChange:
 #	li	$v0, 4
@@ -131,6 +146,7 @@ rsaMath:
 	
 iterateCharacters:
 	move $t1, $s2	#copies exponent into $t1
+	jal testPrintChar
 	sb $t2, ($t4)
 	addi $t4, $t4, 1
 	addi $t0, $t0, 1
@@ -144,7 +160,7 @@ powerE:
 	bgt $t1, 1, powerE	#branch to top of loop if not fininshed 
 
 modN:	
-	slt $t3, $t2, $s1	#if working value < n, t0 = 1
+	slt $t3, $t2, $s1	#if working value < n, t3 = 1
 	bne $t3, $0, iterateCharacters		#exit loop (loop performs mod n)
 	sub $t2, $t2, $s1	#subtract n from the working value
 	j modN
@@ -173,6 +189,7 @@ writeFile: # Create and open a new .txt file
 	syscall            # close file
 
 	jr $ra
+	
 exit:	
 	la $a0, promptExit
 	li $v0, 4
