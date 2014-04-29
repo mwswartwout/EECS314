@@ -153,12 +153,14 @@ rsaMath:
 	la $t4, output #puts address of output into $t4
 	addi $t0, $t0, -1 #decrements t0 so that the first loop of iterateCharacters does not skip the first character in the file
 	addi $t4, $t4, -1
+	addi $t8, $t8, 4294967295
+	mtc1.d $t8, $f4
 	
 iterateCharacters:
 	move $t1, $s2	#copies exponent into $t1
 	#jal testPrintChar
-	cvt.w.d $f6, $f6
-	mfc1 $t2, $f6
+	#cvt.w.d $f6, $f6
+	#mfc1 $t2, $f6
 	sb $t2, ($t4)
 	addi $t4, $t4, 1
 	addi $t0, $t0, 1
@@ -176,15 +178,23 @@ powerE:
 	bgt $t1, 1, powerE	#branch to top of loop if not fininshed 
 
 modN:	
-	c.lt.d $f6, $f2
-	bc1t iterateCharacters
+	c.lt.d $f6, $f4
+	bc1t modI
 	sub.d $f6, $f6, $f2
 	j modN
 	#slt $t3, $t2, $s1	#if working value < n, t3 = 1
 	#bne $t3, $0, iterateCharacters		#exit loop (loop performs mod n)
 	#sub $t2, $t2, $s1	#subtract n from the working value
 	#j iterateCharacters
-	
+
+modI:
+	cvt.d.w $f6, $f6
+	mfc1 $t9, $f6
+	cvt.d.w $f2, $f2
+	mfc1 $s7, $f2
+	div $t9, $s7
+	mfhi $t2
+	j iterateCharacters
 exitRsaMath:
 	jr $ra
 	
