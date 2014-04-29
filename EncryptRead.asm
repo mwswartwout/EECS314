@@ -66,9 +66,9 @@ getModulus:
 	li $v0, 4
 	syscall
 
-	li $v0, 5
+	li $v0, 7
 	syscall
-	add $s1, $v0, $zero	#product key in $s6 ($s6 = n)
+	mov.d $f2, $f0	#modulus stored in f0 is moved to f2
 	
 	jr $ra
 	
@@ -109,30 +109,31 @@ readFile:
 
 	jr $ra
 
-testPrintInput:
-	la	$a0, input
-	li	$v0, 4
-	syscall
+#testPrintInput:
+#	la	$a0, input
+#	li	$v0, 4
+#	syscall
+#
+#	jr $ra
+	
+#testPrintOutput:
+#	la	$a0, output
+#	li	$v0, 4
+#	syscall
+#	
+#	jr $ra
 
-	jr $ra
-	
-testPrintOutput:
-	la	$a0, output
-	li	$v0, 4
-	syscall
-	
-	jr $ra
+#testPrintChar:
+#	la	$a0, ($t4)
+#	li	$v0, 4
+#	syscall
+#	
+#	jr $ra
 
-testPrintChar:
-	la	$a0, ($t4)
-	li	$v0, 4
-	syscall
-	
-	jr $ra
 #testChange:
 #	li	$v0, 4
 #	la	$t0, input
-#	
+	
 #printLoop:
 #	lb	$t2, ($t0)
 #	beqz	$t2, JReturn
@@ -144,7 +145,7 @@ testPrintChar:
 #JReturn:
 #	la	$a0, input
 #	syscall
-	
+#	
 #	jr	$ra
 	
 rsaMath:
@@ -156,27 +157,33 @@ rsaMath:
 iterateCharacters:
 	move $t1, $s2	#copies exponent into $t1
 	#jal testPrintChar
+	cvt.w.d $f6, $f6
+	mfc1 $t2, $f6
 	sb $t2, ($t4)
 	addi $t4, $t4, 1
 	addi $t0, $t0, 1
 	lb $t2, ($t0)	#loads current character into $t2
-	move $t3, $t2
+	mtc1 $t2, $f6
+	cvt.d.w $f6, $f6
+	
+	mov.d $f8, $f6
 	beqz $t2, exitRsaMath
 	
 powerE:	
 	beq $t1, 1, modN
-	mult $t2, $t3		#multiply current char by original char
-	mflo $t2		#move result of multiply to $t2
+	mul.d $f6, $f6, $f8		#multiply current char by original char
 	addi $t1, $t1, -1	#decrement $t1
 	bgt $t1, 1, powerE	#branch to top of loop if not fininshed 
 
 modN:	
+	c.lt.d $f6, $f2
+	bc1t iterateCharacters
+	sub.d $f6, $f6, $f2
+	j modN
 	#slt $t3, $t2, $s1	#if working value < n, t3 = 1
 	#bne $t3, $0, iterateCharacters		#exit loop (loop performs mod n)
 	#sub $t2, $t2, $s1	#subtract n from the working value
-	div $t2, $s1
-	mfhi $t2
-	j iterateCharacters
+	#j iterateCharacters
 	
 exitRsaMath:
 	jr $ra
