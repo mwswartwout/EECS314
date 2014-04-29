@@ -7,8 +7,8 @@ promptFN:	.asciiz	"Enter the file name you wish to input: "
 fname:	.asciiz	"C:\\Users\\Public\\rsa.txt"	# file name to read
 fout:   .asciiz "C:\\Users\\Public\\rsa.txt"      # filename for output
 promptC: .asciiz "Enter a shift number: "
-output: .space 100
-input:	.space 100 # location for input from file
+output: .space 15
+input:	.space 15 # location for input from file
 #actual start of the main program
 .text
 .globl main
@@ -16,16 +16,16 @@ main:				#main has to be a global label
 
 	#RSA numbers: Modulus = 143, encryption key = 7, decryption key = 103
 	jal encryptOrDecrypt
-	beqz $s0, encrypt
+	#beqz $s0, encrypt
 	#jal getFileName	#Not working right now
-	#jal getModulus
-	#jal getExponent
+	jal getModulus
+	jal getExponent
 	jal readFile
 	#jal testPrintInput
-	#jal rsaMath
+	jal rsaMath
 	#jal testPrintOutput
 
-	jal shiftCypherD
+	#jal shiftCypherD
 	jal writeFile
 	jal exit		
 	#beq	$s0, $0, Encrypt
@@ -96,7 +96,7 @@ readFile:
  	li   	$v0, 14      	# system call for read from file
   	add 	$a0, $s6, $zero     	# file descriptor 
   	la   	$a1, input  	# address to store text from file
-  	li   	$a2, 100      # hardcoded buffer length
+  	li   	$a2, 15      # hardcoded buffer length
   	syscall           	# read file
   	
  	# Close the file 
@@ -155,7 +155,7 @@ rsaMath:
 	
 iterateCharacters:
 	move $t1, $s2	#copies exponent into $t1
-	jal testPrintChar
+	#jal testPrintChar
 	sb $t2, ($t4)
 	addi $t4, $t4, 1
 	addi $t0, $t0, 1
@@ -164,6 +164,7 @@ iterateCharacters:
 	beqz $t2, exitRsaMath
 	
 powerE:	
+	beq $t1, 1, modN
 	mult $t2, $t3		#multiply current char by original char
 	mflo $t2		#move result of multiply to $t2
 	addi $t1, $t1, -1	#decrement $t1
@@ -192,7 +193,7 @@ writeFile: # Create and open a new .txt file
 	li   $v0, 15       # system call for write to file
 	move $a0, $s6      # file descriptor 
 	la   $a1, output   # address of buffer from which to write
-	li   $a2, 100     # hardcoded buffer length=1000
+	li   $a2, 15     # hardcoded buffer length=1000
 	syscall            # write to file
 
 	# Close the file 
