@@ -155,6 +155,7 @@ rsaMath:
 	addi $t4, $t4, -1
 	addi $t8, $t8, 4294967295
 	mtc1.d $t8, $f4
+	cvt.d.w $f4, $f4
 	
 iterateCharacters:
 	move $t1, $s2	#copies exponent into $t1
@@ -188,9 +189,9 @@ modN:
 	#j iterateCharacters
 
 modI:
-	cvt.d.w $f6, $f6
+	cvt.w.d $f6, $f6
 	mfc1 $t9, $f6
-	cvt.d.w $f2, $f2
+	cvt.w.d $f2, $f2
 	mfc1 $s7, $f2
 	div $t9, $s7
 	mfhi $t2
