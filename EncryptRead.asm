@@ -31,11 +31,11 @@ main:				#main has to be a global label
 	#beq	$s0, $0, Encrypt
 	#j Decrypt
 
-encrypt:
-	jal readFile
-	jal shiftCypherE
-	jal writeFile
-	jal exit
+#encrypt:
+#	jal readFile
+#	jal shiftCypherE
+#	jal writeFile
+#	jal exit
 
 encryptOrDecrypt:
 	la	$a0, promptED	#prompt for encrypt or decrypt
@@ -44,7 +44,7 @@ encryptOrDecrypt:
 	
 	li	$v0, 5
 	syscall
-	add $s0, $v0, $zero	#save user input to register (0:e, 1:d)
+	add $s0, $v0, $zero	#save user input to register s0(0:e, 1:d)
 	
 	jr $ra
 
@@ -152,38 +152,38 @@ rsaMath:
 	la $t0, input	#puts address of input into $t0
 	la $t4, output #puts address of output into $t4
 	addi $t0, $t0, -1 #decrements t0 so that the first loop of iterateCharacters does not skip the first character in the file
-	addi $t4, $t4, -1
+	addi $t4, $t4, -1 #decrements t4 so that the first loop of iterateCharacter writes the initial garbage to a wrong location
 #	addi $t8, $t8, 32767
 #	mtc1.d $t8, $f4
 #	cvt.d.w $f4, $f4
 	
 iterateCharacters:
-	move $t1, $s2	#copies exponent into $t1
+	move $t1, $s2		#copies exponent into $t1
 	#jal testPrintChar
-	cvt.w.d $f6, $f6
-	mfc1 $t2, $f6
-	sb $t2, ($t4)
-	addi $t4, $t4, 1
-	addi $t0, $t0, 1
-	lb $t2, ($t0)	#loads current character into $t2
-	mtc1 $t2, $f6
-	cvt.d.w $f6, $f6
+	cvt.w.d $f6, $f6 	#converts the working value (f6) from a double-precision floating point to an integer
+	mfc1 $t2, $f6 		#moves the new integer value in f6 to t2
+	sb $t2, ($t4) 		#stores the value of t2 in t4
+	addi $t4, $t4, 1 	#increments t4 so that the output location stays up-to-date
+	addi $t0, $t0, 1 	#increments t0 so that the next char is read from the input
+	lb $t2, ($t0)		#loads current character into t2
+	mtc1 $t2, $f6 		#moves the current char from t2 into f6
+	cvt.d.w $f6, $f6 	#converts the value in f6 from an integer to a double precision floating point
 	
-	mov.d $f8, $f6
-	beqz $t2, exitRsaMath
+	mov.d $f8, $f6 		#makes a copy of the original char, for use in powerE
+	beqz $t2, exitRsaMath 	#if the most recent char that has been read is zero, then the EOF has been reached, and exits encryption
 	
 powerE:	
-	beq $t1, 1, modN
-	mul.d $f6, $f6, $f8		#multiply current char by original char
+	beq $t1, 1, modN	#if the power remaining = 1, take the mod
+	mul.d $f6, $f6, $f8	#multiply current char by original char
 	addi $t1, $t1, -1	#decrement $t1
 	bgt $t1, 1, powerE	#branch to top of loop if not fininshed 
 
 modN:
-	div.d $f6, $f6, $f2
-	trunc.w.d $f8, $f6
-	cvt.d.w $f8, $f8
-	sub.d $f6, $f6, $f8
-	mul.d $f6, $f6, $f2
+	div.d $f6, $f6, $f2	#divide the working value (f6) by the modulus (f2)
+	trunc.w.d $f10, $f6	#truncate the working value (f6) and store in f10 (2.xxxxx -> 2)
+	cvt.d.w $f10, $f10	#converts the truncated floating point value to an integer
+	sub.d $f6, $f6, $f10	#subtracts working value (f6) - truncated value (f10) and stores in f6 (2.xxxxx - 2 = .xxxxx)
+	mul.d $f6, $f6, $f2	#sets working value equal to remainder of division by multiplying decimal value (f6) by the modulus (f2)
 #	c.lt.d $f6, $f4
 #	bc1t modI
 #	sub.d $f6, $f6, $f2
@@ -193,14 +193,15 @@ modN:
 	#sub $t2, $t2, $s1	#subtract n from the working value
 	j iterateCharacters
 
-modI:
-	cvt.w.d $f6, $f6
-	mfc1 $t9, $f6
-	cvt.w.d $f2, $f2
-	mfc1 $s7, $f2
-	div $t9, $s7
-	mfhi $t2
-	j iterateCharacters
+#modI:
+#	cvt.w.d $f6, $f6
+#	mfc1 $t9, $f6
+#	cvt.w.d $f2, $f2
+#	mfc1 $s7, $f2
+#	div $t9, $s7
+#	mfhi $t2
+#	j iterateCharacters
+
 exitRsaMath:
 	jr $ra
 	
@@ -226,50 +227,50 @@ writeFile: # Create and open a new .txt file
 
 	jr $ra
 
-shiftCypherE:
-	la $a0, promptC
-	li $v0, 4
-	syscall
+#shiftCypherE:
+#	la $a0, promptC
+#	li $v0, 4
+#	syscall
+#
+#	li $v0, 5
+#	syscall
+#	add $s2, $v0, $zero	
+#	
+#	la $t0, input	#puts address of input into $t0
+#	la $t4, output #puts address of output into $t4
 
-	li $v0, 5
-	syscall
-	add $s2, $v0, $zero	
-	
-	la $t0, input	#puts address of input into $t0
-	la $t4, output #puts address of output into $t4
+#shiftE:
+#	lb $t2, ($t0)
+#	beqz $t2, rtm
+#	add $t2, $t2, $s2
+#	sb $t2, ($t4)
+#	addi $t0, $t0, 1
+#	addi $t4, $t4, 1
+#	j shiftE
 
-shiftE:
-	lb $t2, ($t0)
-	beqz $t2, rtm
-	add $t2, $t2, $s2
-	sb $t2, ($t4)
-	addi $t0, $t0, 1
-	addi $t4, $t4, 1
-	j shiftE
+#shiftCypherD:
+#	la $a0, promptC
+#	li $v0, 4
+#	syscall
+#
+#	li $v0, 5
+#	syscall
+#	add $s2, $v0, $zero	
+#	
+#	la $t0, input	#puts address of input into $t0
+#	la $t4, output #puts address of output into $t4
 
-shiftCypherD:
-	la $a0, promptC
-	li $v0, 4
-	syscall
+#shiftD:
+#	lb $t2, ($t0)
+#	beqz $t2, rtm
+#	sub $t2, $t2, $s2
+#	sb $t2, ($t4)
+#	addi $t0, $t0, 1
+#	addi $t4, $t4, 1
+#	j shiftD
 
-	li $v0, 5
-	syscall
-	add $s2, $v0, $zero	
-	
-	la $t0, input	#puts address of input into $t0
-	la $t4, output #puts address of output into $t4
-
-shiftD:
-	lb $t2, ($t0)
-	beqz $t2, rtm
-	sub $t2, $t2, $s2
-	sb $t2, ($t4)
-	addi $t0, $t0, 1
-	addi $t4, $t4, 1
-	j shiftD
-
-rtm:
-	jr $ra
+#rtm:
+#	jr $ra
 	
 exit:	
 	la $a0, promptExit
