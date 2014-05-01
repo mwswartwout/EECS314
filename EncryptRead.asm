@@ -183,6 +183,7 @@ modN:
 	trunc.w.d $f8, $f6
 	cvt.d.w $f8, $f8
 	sub.d $f6, $f6, $f8
+	mul.d $f6, $f6, $f2
 #	c.lt.d $f6, $f4
 #	bc1t modI
 #	sub.d $f6, $f6, $f2
