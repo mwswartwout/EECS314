@@ -1,13 +1,13 @@
 #Data section contains prompts, file location, and input and output spaces
 .data
 promptED: 	.asciiz 	"\nWhat do you want to do with the file?\n0: Encryption\n1:Decryption\n... "
-promptE: 	.asciiz 	"Enter the encryption key.\n"
+promptE: 	.asciiz 	"Enter the key (exponent).\n"
 promptM: 	.asciiz 	"Enter the modulus. The modulus cannot be greater than 255\n"
 promptExit:	.asciiz 	"\nWould you like to exit?\n0: Decrypt/Encrypt another file.\n1: Exit.\n..."
-promptFN:	.asciiz		"Enter the file name you wish to input: "
+
 fname:		.asciiz		"C:\\Users\\Public\\rsa.txt"	# file name to read
 fout:   	.asciiz 	"C:\\Users\\Public\\rsa.txt"	# filename for output
-promptC: 	.asciiz 	"Enter a shift number: "
+
 output: 	.space 		52	#location for output to file
 input:		.space 		52	# location for input from file
 
@@ -16,7 +16,7 @@ input:		.space 		52	# location for input from file
 .globl main
 main:				
 	#Modulus can be no greater than 255
-	#Suggested RSA numbers: [Modulus = 143, encryption key = 7, decryption key = 103], [255,3,43], [255,7,55], [187,7,23], [153,7,55], [147,5,17]
+	#Suggested RSA numbers: [Modulus = 129, encryption key = 5, decryption key = 17]
 	jal encryptOrDecrypt
 	jal getModulus
 	jal getExponent
@@ -36,19 +36,6 @@ encryptOrDecrypt:
 	
 	jr $ra
 
-#getFileName:
-#	# get file name from user
-#	li	$v0, 4		# prompt user for file name to read
-#	la	$a0, promptFN
-#	syscall
-#	
-#	li	$v0, 8		# retrieve user input
-#	la	$a0, fname	# location to store string
-#	li	$a1, 100	# max number of characters
-#	syscall
-#
-#	jr	$ra		# return to main method
-
 #Prompts the user to enter the modulus
 getModulus:
 	la $a0, promptM		#Loads the prompt to enter the modulus
@@ -56,10 +43,8 @@ getModulus:
 	syscall
 
 	li $v0, 5
-#	li $v0, 7
 	syscall
-#	mov.d $f2, $f0	#modulus stored in f0 is moved to f2
-	move $s7, $v0
+	move $s7, $v0		#modulus is store
 	
 	jr $ra
 
@@ -110,23 +95,17 @@ rsaMath:
 #Loop that iterates through each character
 iterateCharacters:
 	move $t1, $s2		#copies exponent into $t1
-#	cvt.w.d $f6, $f6 	#converts the working value (f6) from a double-precision floating point to an integer
-#	mfc1 $t2, $f6 		#moves the new integer value in f6 to t2
 	sb $t2, ($t4) 		#stores the value of t2 in t4
 	addi $t4, $t4, 1 	#increments t4 so that the output location stays up-to-date
 	addi $t0, $t0, 1 	#increments t0 so that the next char is read from the input
 	lb $t2, ($t0)		#loads current character into t2
 	move $t3, $t2		#makes a copy of the original char, for use in powerE
-#	mtc1 $t2, $f6 		#moves the current char from t2 into f6
-#	cvt.d.w $f6, $f6 	#converts the value in f6 from an integer to a double precision floating point
 	
-#	mov.d $f8, $f6 		#makes a copy of the original char, for use in powerE
 	beqz $t2, exitRsaMath 	#if the most recent char that has been read is zero, then the EOF has been reached, and exits encryption
 
 #Loop that iterates through taking each character to the proper power	
 powerE:	
 	beq $t1, 1, modN	#if the power remaining = 1, take the mod
-#	mul.d $f6, $f6, $f8
 	mult $t2, $t3		#multiply current char by original char
 	mflo $t2
 	jal modN
@@ -136,15 +115,8 @@ powerE:
 
 #Takes the modulus of the working value in f6
 modN:
-	div $t2, $s7
-	mfhi $t2
-#	div.d $f6, $f6, $f2	#divide the working value (f6) by the modulus (f2)
-#	floor.w.d $f10, $f6	#truncate the working value (f6) and store in f10 (2.xxxxx -> 2)
-#	cvt.d.w $f10, $f10	#converts the truncated floating point value to an integer
-#	sub.d $f6, $f6, $f10	#subtracts working value (f6) - truncated value (f10) and stores in f6 (2.xxxxx - 2 = .xxxxx)
-#	mul.d $f6, $f6, $f2	#sets working value equal to remainder of division by multiplying decimal value (f6) by the modulus (f2)
-#	round.w.d $f6, $f6	#rounds the working value in case there is a slight error in the division/multiplication
-#	cvt.d.w $f6, $f6	#converts the integer now in f6 to a double precision floating point
+	div $t2, $s7		#divide the working value (t2) by the modulus (s7)
+	mfhi $t2		#retrieve the remainer from HI and set as working value
 
 	jr $ra
 
