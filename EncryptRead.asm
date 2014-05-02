@@ -149,6 +149,7 @@ readFile:
 #	jr	$ra
 	
 rsaMath:
+	move $s3, $ra 	#saves the return address into s3 because a jal is called later in powerE
 	la $t0, input	#puts address of input into $t0
 	la $t4, output #puts address of output into $t4
 	addi $t0, $t0, -1 #decrements t0 so that the first loop of iterateCharacters does not skip the first character in the file
@@ -175,8 +176,10 @@ iterateCharacters:
 powerE:	
 	beq $t1, 1, modN	#if the power remaining = 1, take the mod
 	mul.d $f6, $f6, $f8	#multiply current char by original char
+	jal modN
 	addi $t1, $t1, -1	#decrement $t1
-	bgt $t1, 1, powerE	#branch to top of loop if not fininshed 
+	bgt $t1, 1, powerE	#branch to top of loop if not fininshed
+	j iterateCharacters
 
 modN:
 	div.d $f6, $f6, $f2	#divide the working value (f6) by the modulus (f2)
@@ -184,6 +187,8 @@ modN:
 	cvt.d.w $f10, $f10	#converts the truncated floating point value to an integer
 	sub.d $f6, $f6, $f10	#subtracts working value (f6) - truncated value (f10) and stores in f6 (2.xxxxx - 2 = .xxxxx)
 	mul.d $f6, $f6, $f2	#sets working value equal to remainder of division by multiplying decimal value (f6) by the modulus (f2)
+	round.w.d $f6, $f6	#rounds the working value in case there is a slight error in the division/multiplication
+	cvt.d.w $f6, $f6	#converts the integer now in f6 to a double precision floating point
 #	c.lt.d $f6, $f4
 #	bc1t modI
 #	sub.d $f6, $f6, $f2
@@ -191,7 +196,7 @@ modN:
 	#slt $t3, $t2, $s1	#if working value < n, t3 = 1
 	#bne $t3, $0, iterateCharacters		#exit loop (loop performs mod n)
 	#sub $t2, $t2, $s1	#subtract n from the working value
-	j iterateCharacters
+	jr $ra
 
 #modI:
 #	cvt.w.d $f6, $f6
@@ -203,7 +208,7 @@ modN:
 #	j iterateCharacters
 
 exitRsaMath:
-	jr $ra
+	jr $s3
 	
 writeFile: # Create and open a new .txt file
 	li   $v0, 13       # system call for open file
