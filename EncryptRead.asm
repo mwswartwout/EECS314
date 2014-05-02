@@ -8,8 +8,8 @@ promptFN:	.asciiz		"Enter the file name you wish to input: "
 fname:		.asciiz		"C:\\Users\\Public\\rsa.txt"	# file name to read
 fout:   	.asciiz 	"C:\\Users\\Public\\rsa.txt"	# filename for output
 promptC: 	.asciiz 	"Enter a shift number: "
-output: 	.space 		15	#location for output to file
-input:		.space 		15	# location for input from file
+output: 	.space 		52	#location for output to file
+input:		.space 		52	# location for input from file
 
 #Begin code
 .text
@@ -55,9 +55,11 @@ getModulus:
 	li $v0, 4
 	syscall
 
-	li $v0, 7
+	li $v0, 5
+#	li $v0, 7
 	syscall
-	mov.d $f2, $f0	#modulus stored in f0 is moved to f2
+#	mov.d $f2, $f0	#modulus stored in f0 is moved to f2
+	move $s7, $v0
 	
 	jr $ra
 
@@ -87,7 +89,7 @@ readFile:
  	li   	$v0, 14      	# system call for read from file
   	add 	$a0, $s6, $zero # file descriptor 
   	la   	$a1, input  	# address to store text from file
-  	li   	$a2, 15      	# hardcoded buffer length
+  	li   	$a2, 52      	# hardcoded buffer length
   	syscall           	# read file
   	
  	# Close the file 
@@ -108,22 +110,25 @@ rsaMath:
 #Loop that iterates through each character
 iterateCharacters:
 	move $t1, $s2		#copies exponent into $t1
-	cvt.w.d $f6, $f6 	#converts the working value (f6) from a double-precision floating point to an integer
-	mfc1 $t2, $f6 		#moves the new integer value in f6 to t2
+#	cvt.w.d $f6, $f6 	#converts the working value (f6) from a double-precision floating point to an integer
+#	mfc1 $t2, $f6 		#moves the new integer value in f6 to t2
 	sb $t2, ($t4) 		#stores the value of t2 in t4
 	addi $t4, $t4, 1 	#increments t4 so that the output location stays up-to-date
 	addi $t0, $t0, 1 	#increments t0 so that the next char is read from the input
 	lb $t2, ($t0)		#loads current character into t2
-	mtc1 $t2, $f6 		#moves the current char from t2 into f6
-	cvt.d.w $f6, $f6 	#converts the value in f6 from an integer to a double precision floating point
+	move $t3, $t2		#makes a copy of the original char, for use in powerE
+#	mtc1 $t2, $f6 		#moves the current char from t2 into f6
+#	cvt.d.w $f6, $f6 	#converts the value in f6 from an integer to a double precision floating point
 	
-	mov.d $f8, $f6 		#makes a copy of the original char, for use in powerE
+#	mov.d $f8, $f6 		#makes a copy of the original char, for use in powerE
 	beqz $t2, exitRsaMath 	#if the most recent char that has been read is zero, then the EOF has been reached, and exits encryption
 
 #Loop that iterates through taking each character to the proper power	
 powerE:	
 	beq $t1, 1, modN	#if the power remaining = 1, take the mod
-	mul.d $f6, $f6, $f8	#multiply current char by original char
+#	mul.d $f6, $f6, $f8
+	mult $t2, $t3		#multiply current char by original char
+	mflo $t2
 	jal modN
 	addi $t1, $t1, -1	#decrement $t1
 	bgt $t1, 1, powerE	#branch to top of loop if not fininshed
@@ -131,13 +136,15 @@ powerE:
 
 #Takes the modulus of the working value in f6
 modN:
-	div.d $f6, $f6, $f2	#divide the working value (f6) by the modulus (f2)
-	floor.w.d $f10, $f6	#truncate the working value (f6) and store in f10 (2.xxxxx -> 2)
-	cvt.d.w $f10, $f10	#converts the truncated floating point value to an integer
-	sub.d $f6, $f6, $f10	#subtracts working value (f6) - truncated value (f10) and stores in f6 (2.xxxxx - 2 = .xxxxx)
-	mul.d $f6, $f6, $f2	#sets working value equal to remainder of division by multiplying decimal value (f6) by the modulus (f2)
-	round.w.d $f6, $f6	#rounds the working value in case there is a slight error in the division/multiplication
-	cvt.d.w $f6, $f6	#converts the integer now in f6 to a double precision floating point
+	div $t2, $s7
+	mfhi $t2
+#	div.d $f6, $f6, $f2	#divide the working value (f6) by the modulus (f2)
+#	floor.w.d $f10, $f6	#truncate the working value (f6) and store in f10 (2.xxxxx -> 2)
+#	cvt.d.w $f10, $f10	#converts the truncated floating point value to an integer
+#	sub.d $f6, $f6, $f10	#subtracts working value (f6) - truncated value (f10) and stores in f6 (2.xxxxx - 2 = .xxxxx)
+#	mul.d $f6, $f6, $f2	#sets working value equal to remainder of division by multiplying decimal value (f6) by the modulus (f2)
+#	round.w.d $f6, $f6	#rounds the working value in case there is a slight error in the division/multiplication
+#	cvt.d.w $f6, $f6	#converts the integer now in f6 to a double precision floating point
 
 	jr $ra
 
@@ -158,7 +165,7 @@ writeFile:
 	li   $v0, 15       	# system call for write to file
 	move $a0, $s6      	# file descriptor 
 	la   $a1, output   	# address of buffer from which to write
-	li   $a2, 15     	# hardcoded buffer length=1000
+	li   $a2, 52     	# hardcoded buffer length=1000
 	syscall            	# write to file
 
 	# Close the file 
